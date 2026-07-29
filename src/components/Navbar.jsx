@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Car, ShieldCheck, User, LogOut, LayoutDashboard, KeyRound, Menu, X } from 'lucide-react';
+import { Car, ShieldCheck, User, LogOut, LayoutDashboard, KeyRound, Menu, X, Package } from 'lucide-react';
 
 const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -49,6 +49,20 @@ const Navbar = () => {
               <LayoutDashboard className="w-4 h-4" />
               <span>Catalog Dashboard</span>
             </Link>
+
+            {isAuthenticated && (
+              <Link
+                to="/orders"
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/orders')
+                    ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-500/30'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800/60'
+                }`}
+              >
+                <Package className="w-4 h-4 text-emerald-400" />
+                <span>My Orders & Analytics</span>
+              </Link>
+            )}
 
             {isAdmin && (
               <Link
@@ -133,6 +147,16 @@ const Navbar = () => {
             <LayoutDashboard className="w-5 h-5 text-blue-400" />
             <span>Catalog Dashboard</span>
           </Link>
+          {isAuthenticated && (
+            <Link
+              to="/orders"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-emerald-300 hover:bg-emerald-950/40"
+            >
+              <Package className="w-5 h-5 text-emerald-400" />
+              <span>My Orders & Analytics</span>
+            </Link>
+          )}
           {isAdmin && (
             <Link
               to="/admin"

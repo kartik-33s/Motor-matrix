@@ -1,28 +1,11 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { supabase } from '../db/supabase.js';
+import crypto from 'crypto';
+import db from '../db/sqlite.js';
 import { generateToken } from '../utils/jwt.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
-
-// Fallback in-memory user store if Supabase credentials are not connected yet
-const memoryUsers = [
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'Admin Manager',
-    email: 'admin@dealership.com',
-    password_hash: bcrypt.hashSync('admin123', 10),
-    role: 'admin',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'John Doe',
-    email: 'user@dealership.com',
-    password_hash: bcrypt.hashSync('user123', 10),
-    role: 'user',
-  },
-];
 
 /**
  * @route   POST /api/auth/register
@@ -40,56 +23,21 @@ router.post('/register', async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     const userRole = role === 'admin' ? 'admin' : 'user';
 
-    // 1. If Supabase is connected
-    if (supabase) {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', cleanEmail)
-        .single();
-
-      if (existingUser) {
-        return res.status(400).json({ message: 'User with this email already exists' });
-      }
-
-      const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(password, salt);
-
-      const { data: newUser, error } = await supabase
-        .from('users')
-        .insert([{ name, email: cleanEmail, password_hash, role: userRole }])
-        .select('id, name, email, role, created_at')
-        .single();
-
-      if (error) {
-        return res.status(500).json({ message: `Registration error: ${error.message}` });
-      }
-
-      const token = generateToken({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role });
-
-      return res.status(201).json({
-        user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-        token,
-      });
-    }
-
-    // 2. Fallback memory store logic
-    const existingMemoryUser = memoryUsers.find((u) => u.email === cleanEmail);
-    if (existingMemoryUser) {
+    const existing = db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
+    if (existing) {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
-    const newUser = {
-      id: `usr-${Date.now()}`,
-      name,
-      email: cleanEmail,
-      password_hash,
-      role: userRole,
-    };
-    memoryUsers.push(newUser);
+    const id = `u-${crypto.randomUUID()}`;
 
+    db.prepare(`
+      INSERT INTO users (id, name, email, password_hash, role)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, name.trim(), cleanEmail, password_hash, userRole);
+
+    const newUser = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(id);
     const token = generateToken({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role });
 
     return res.status(201).json({
@@ -116,34 +64,8 @@ router.post('/login', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const user = db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
 
-    // 1. If Supabase is connected
-    if (supabase) {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', cleanEmail)
-        .single();
-
-      if (error || !user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password_hash);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const token = generateToken({ id: user.id, name: user.name, email: user.email, role: user.role });
-
-      return res.json({
-        user: { id: user.id, name: user.name, email: user.email, role: user.role },
-        token,
-      });
-    }
-
-    // 2. Fallback memory store logic
-    const user = memoryUsers.find((u) => u.email === cleanEmail);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -172,7 +94,8 @@ router.post('/login', async (req, res) => {
  */
 router.get('/me', protect, async (req, res) => {
   try {
-    return res.json({ user: req.user });
+    const user = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE id = ?').get(req.user.id);
+    return res.json({ user: user || req.user });
   } catch (err) {
     return res.status(500).json({ message: 'Server error fetching user profile' });
   }

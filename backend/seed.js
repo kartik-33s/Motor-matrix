@@ -1,14 +1,18 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { db, initDb } from './db/sqlite.js';
 import { supabase } from './db/supabase.js';
 
 const demoUsers = [
   {
+    id: 'u1111111-1111-1111-1111-111111111111',
     name: 'Admin Manager',
     email: 'admin@dealership.com',
     password: 'admin123',
     role: 'admin',
   },
   {
+    id: 'u2222222-2222-2222-2222-222222222222',
     name: 'John Doe',
     email: 'user@dealership.com',
     password: 'user123',
@@ -18,6 +22,7 @@ const demoUsers = [
 
 const demoVehicles = [
   {
+    id: 'v1111111-1111-1111-1111-111111111111',
     make: 'Tesla',
     model: 'Model S Plaid',
     year: 2024,
@@ -28,6 +33,7 @@ const demoVehicles = [
     description: 'Tri-motor all-wheel drive with sub-2 second 0-60 mph acceleration and luxury minimalist interior.',
   },
   {
+    id: 'v2222222-2222-2222-2222-222222222222',
     make: 'Porsche',
     model: '911 GT3',
     year: 2024,
@@ -38,6 +44,7 @@ const demoVehicles = [
     description: 'Naturally aspirated 4.0L flat-six engine delivering 502 horsepower of pure track performance.',
   },
   {
+    id: 'v3333333-3333-3333-3333-333333333333',
     make: 'BMW',
     model: 'M5 Competition',
     year: 2023,
@@ -48,6 +55,7 @@ const demoVehicles = [
     description: 'Twin-turbo V8 producing 617 hp, paired with M xDrive intelligent all-wheel drive system.',
   },
   {
+    id: 'v4444444-4444-4444-4444-444444444444',
     make: 'Mercedes-Benz',
     model: 'G 63 AMG',
     year: 2024,
@@ -58,6 +66,7 @@ const demoVehicles = [
     description: 'Iconic off-road luxury vehicle powered by a handcrafted AMG 4.0L biturbo V8 engine.',
   },
   {
+    id: 'v5555555-5555-5555-5555-555555555555',
     make: 'Ford',
     model: 'F-150 Lightning',
     year: 2024,
@@ -68,6 +77,7 @@ const demoVehicles = [
     description: 'All-electric pickup truck featuring Pro Power Onboard generator and massive front trunk capability.',
   },
   {
+    id: 'v6666666-6666-6666-6666-666666666666',
     make: 'Audi',
     model: 'RS e-tron GT',
     year: 2024,
@@ -78,6 +88,7 @@ const demoVehicles = [
     description: 'Electrifying performance grand tourer with dual synchronous motors and 800V charging system.',
   },
   {
+    id: 'v7777777-7777-7777-7777-777777777777',
     make: 'Toyota',
     model: 'GR Supra 3.0',
     year: 2023,
@@ -88,6 +99,7 @@ const demoVehicles = [
     description: '3.0L turbocharged inline-six engine paired with 6-speed manual transmission for maximum driver engagement.',
   },
   {
+    id: 'v8888888-8888-8888-8888-888888888888',
     make: 'Range Rover',
     model: 'Autobiography',
     year: 2024,
@@ -98,6 +110,7 @@ const demoVehicles = [
     description: 'Peerless luxury flagship SUV offering executive rear seating and active noise cancellation.',
   },
   {
+    id: 'v9999999-9999-9999-9999-999999999999',
     make: 'Lucid',
     model: 'Air Grand Touring',
     year: 2024,
@@ -108,6 +121,7 @@ const demoVehicles = [
     description: 'Ultra-efficient luxury EV with over 500 miles of estimated EPA range and 819 horsepower.',
   },
   {
+    id: 'v0000000-0000-0000-0000-000000000000',
     make: 'Chevrolet',
     model: 'Corvette Z06',
     year: 2024,
@@ -120,66 +134,70 @@ const demoVehicles = [
 ];
 
 async function seedDatabase() {
-  console.log('🚀 Starting Supabase Database Seed...');
-
-  if (!supabase) {
-    console.error('❌ Cannot seed database: Supabase credentials missing in .env file.');
-    console.log('\n💡 Please add VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your .env file, then run SQL in backend/db/schema.sql on Supabase.');
-    process.exit(1);
-  }
+  console.log('🚀 Starting SQLite Database Seed...');
+  initDb();
 
   try {
-    // 1. Seed Users
+    // 1. Seed Users into SQLite
     console.log('📦 Seeding Demo Users...');
+    const userStmt = db.prepare(`
+      INSERT INTO users (id, name, email, password_hash, role)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET
+        name=excluded.name,
+        password_hash=excluded.password_hash,
+        role=excluded.role
+    `);
+
     for (const u of demoUsers) {
       const salt = await bcrypt.genSalt(10);
       const password_hash = await bcrypt.hash(u.password, salt);
-
-      const { data, error } = await supabase
-        .from('users')
-        .upsert(
-          { name: u.name, email: u.email, password_hash, role: u.role },
-          { onConflict: 'email' }
-        )
-        .select();
-
-      if (error) {
-        console.error(`❌ Error seeding user ${u.email}:`, error.message);
-      } else {
-        console.log(`  ✓ Seeded user: ${u.email} (${u.role})`);
-      }
+      userStmt.run(u.id, u.name, u.email.toLowerCase().trim(), password_hash, u.role);
+      console.log(`  ✓ Seeded SQLite user: ${u.email} (${u.role})`);
     }
 
-    // 2. Seed Vehicles
+    // 2. Seed Vehicles into SQLite
     console.log('\n🏎️  Seeding Vehicle Inventory...');
-    for (const v of demoVehicles) {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .upsert(
-          {
-            make: v.make,
-            model: v.model,
-            year: v.year,
-            price: v.price,
-            stock: v.stock,
-            category: v.category,
-            image_url: v.image_url,
-            description: v.description,
-          },
-          { onConflict: 'make,model,year' }
-        )
-        .select();
+    const vehicleStmt = db.prepare(`
+      INSERT INTO vehicles (id, make, model, year, price, stock, category, image_url, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        make=excluded.make,
+        model=excluded.model,
+        year=excluded.year,
+        price=excluded.price,
+        stock=excluded.stock,
+        category=excluded.category,
+        image_url=excluded.image_url,
+        description=excluded.description
+    `);
 
-      if (error) {
-        // Fallback simple insert if composite constraint doesn't exist
-        const { error: insertErr } = await supabase.from('vehicles').insert(v);
-        if (insertErr) {
-          console.error(`❌ Error seeding vehicle ${v.make} ${v.model}:`, insertErr.message);
-        } else {
-          console.log(`  ✓ Seeded vehicle: ${v.year} ${v.make} ${v.model}`);
+    for (const v of demoVehicles) {
+      vehicleStmt.run(
+        v.id,
+        v.make,
+        v.model,
+        v.year,
+        v.price,
+        v.stock,
+        v.category,
+        v.image_url,
+        v.description
+      );
+      console.log(`  ✓ Seeded SQLite vehicle: ${v.year} ${v.make} ${v.model}`);
+    }
+
+    // Attempt Supabase seed if connected (optional)
+    if (supabase) {
+      try {
+        console.log('\n☁️  Attempting Supabase sync...');
+        for (const u of demoUsers) {
+          const salt = await bcrypt.genSalt(10);
+          const password_hash = await bcrypt.hash(u.password, salt);
+          await supabase.from('users').upsert({ name: u.name, email: u.email, password_hash, role: u.role }, { onConflict: 'email' });
         }
-      } else {
-        console.log(`  ✓ Seeded vehicle: ${v.year} ${v.make} ${v.model}`);
+      } catch (sbErr) {
+        console.log('ℹ️  Supabase sync skipped (using local SQLite database).');
       }
     }
 

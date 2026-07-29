@@ -1,86 +1,23 @@
 import express from 'express';
+import crypto from 'crypto';
+import db from '../db/sqlite.js';
 import { supabase } from '../db/supabase.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Fallback in-memory vehicles store if Supabase credentials are not connected yet
-let memoryVehicles = [
-  {
-    id: 'v1111111-1111-1111-1111-111111111111',
-    make: 'Tesla',
-    model: 'Model S Plaid',
-    year: 2024,
-    price: 89990.00,
-    stock: 5,
-    category: 'Electric',
-    image_url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1000&q=80',
-    description: 'Tri-motor all-wheel drive with sub-2 second 0-60 mph acceleration and luxury minimalist interior.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v2222222-2222-2222-2222-222222222222',
-    make: 'Porsche',
-    model: '911 GT3',
-    year: 2024,
-    price: 182900.00,
-    stock: 2,
-    category: 'Sports',
-    image_url: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1000&q=80',
-    description: 'Naturally aspirated 4.0L flat-six engine delivering 502 horsepower of pure track performance.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v3333333-3333-3333-3333-333333333333',
-    make: 'BMW',
-    model: 'M5 Competition',
-    year: 2023,
-    price: 110900.00,
-    stock: 4,
-    category: 'Sedan',
-    image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1000&q=80',
-    description: 'Twin-turbo V8 producing 617 hp, paired with M xDrive intelligent all-wheel drive system.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v4444444-4444-4444-4444-444444444444',
-    make: 'Mercedes-Benz',
-    model: 'G 63 AMG',
-    year: 2024,
-    price: 179000.00,
-    stock: 3,
-    category: 'SUV',
-    image_url: 'https://images.unsplash.com/photo-1520050206274-a1ae44613e6d?auto=format&fit=crop&w=1000&q=80',
-    description: 'Iconic off-road luxury vehicle powered by a handcrafted AMG 4.0L biturbo V8 engine.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v5555555-5555-5555-5555-555555555555',
-    make: 'Ford',
-    model: 'F-150 Lightning',
-    year: 2024,
-    price: 67990.00,
-    stock: 8,
-    category: 'Truck',
-    image_url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1000&q=80',
-    description: 'All-electric pickup truck featuring Pro Power Onboard generator and massive front trunk capability.',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'v6666666-6666-6666-6666-666666666666',
-    make: 'Audi',
-    model: 'RS e-tron GT',
-    year: 2024,
-    price: 147100.00,
-    stock: 3,
-    category: 'Electric',
-    image_url: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=1000&q=80',
-    description: 'Electrifying performance grand tourer with dual synchronous motors and 800V charging system.',
-    created_at: new Date().toISOString(),
-  },
-];
-
-let memorySalesTransactions = [];
+/**
+ * Helper: Map row to vehicle object (ensure types match)
+ */
+const formatVehicle = (row) => {
+  if (!row) return null;
+  return {
+    ...row,
+    year: Number(row.year),
+    price: Number(row.price),
+    stock: Number(row.stock),
+  };
+};
 
 /**
  * @route   GET /api/vehicles/search
@@ -91,60 +28,37 @@ router.get('/search', async (req, res) => {
   try {
     const { q, make, category, minPrice, maxPrice } = req.query;
 
-    if (supabase) {
-      let query = supabase.from('vehicles').select('*');
-
-      if (make && make !== 'All') {
-        query = query.ilike('make', `%${make}%`);
-      }
-      if (category && category !== 'All') {
-        query = query.eq('category', category);
-      }
-      if (minPrice) {
-        query = query.gte('price', parseFloat(minPrice));
-      }
-      if (maxPrice) {
-        query = query.lte('price', parseFloat(maxPrice));
-      }
-
-      let { data: vehicles, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        return res.status(500).json({ message: `Search query error: ${error.message}` });
-      }
-
-      if (q) {
-        const searchTerm = q.toLowerCase();
-        vehicles = vehicles.filter(
-          (v) =>
-            v.make.toLowerCase().includes(searchTerm) ||
-            v.model.toLowerCase().includes(searchTerm) ||
-            v.category.toLowerCase().includes(searchTerm) ||
-            (v.description && v.description.toLowerCase().includes(searchTerm))
-        );
-      }
-
-      return res.json(vehicles);
-    }
-
-    // Fallback Memory Search
-    let results = [...memoryVehicles];
+    let sql = 'SELECT * FROM vehicles WHERE 1=1';
+    const params = [];
 
     if (make && make !== 'All') {
-      results = results.filter((v) => v.make.toLowerCase().includes(make.toLowerCase()));
+      sql += ' AND LOWER(make) LIKE ?';
+      params.push(`%${make.toLowerCase()}%`);
     }
+
     if (category && category !== 'All') {
-      results = results.filter((v) => v.category.toLowerCase() === category.toLowerCase());
+      sql += ' AND LOWER(category) = ?';
+      params.push(category.toLowerCase());
     }
+
     if (minPrice) {
-      results = results.filter((v) => v.price >= parseFloat(minPrice));
+      sql += ' AND price >= ?';
+      params.push(parseFloat(minPrice));
     }
+
     if (maxPrice) {
-      results = results.filter((v) => v.price <= parseFloat(maxPrice));
+      sql += ' AND price <= ?';
+      params.push(parseFloat(maxPrice));
     }
+
+    sql += ' ORDER BY created_at DESC';
+
+    const rows = db.prepare(sql).all(...params);
+    let vehicles = rows.map(formatVehicle);
+
     if (q) {
       const searchTerm = q.toLowerCase();
-      results = results.filter(
+      vehicles = vehicles.filter(
         (v) =>
           v.make.toLowerCase().includes(searchTerm) ||
           v.model.toLowerCase().includes(searchTerm) ||
@@ -153,7 +67,7 @@ router.get('/search', async (req, res) => {
       );
     }
 
-    return res.json(results);
+    return res.json(vehicles);
   } catch (err) {
     console.error('Search error:', err);
     return res.status(500).json({ message: 'Server error during inventory search' });
@@ -167,20 +81,11 @@ router.get('/search', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    if (supabase) {
-      const { data: vehicles, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      return res.json(vehicles);
-    }
-
-    return res.json(memoryVehicles);
+    const rows = db.prepare('SELECT * FROM vehicles ORDER BY created_at DESC').all();
+    const vehicles = rows.map(formatVehicle);
+    return res.json(vehicles);
   } catch (err) {
+    console.error('Fetch inventory error:', err);
     return res.status(500).json({ message: 'Server error fetching inventory' });
   }
 });
@@ -192,20 +97,52 @@ router.get('/', async (req, res) => {
  */
 router.get('/transactions/all', protect, adminOnly, async (req, res) => {
   try {
-    if (supabase) {
-      const { data: transactions, error } = await supabase
-        .from('sales_transactions')
-        .select('*, users(name, email), vehicles(make, model, year)')
-        .order('created_at', { ascending: false });
+    const rows = db.prepare(`
+      SELECT 
+        st.*,
+        u.name as user_name,
+        u.email as user_email,
+        v.make as v_make,
+        v.model as v_model,
+        v.year as v_year,
+        v.category as v_category,
+        v.image_url as v_image_url
+      FROM sales_transactions st
+      LEFT JOIN users u ON st.user_id = u.id
+      LEFT JOIN vehicles v ON st.vehicle_id = v.id
+      ORDER BY st.created_at DESC
+    `).all();
 
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      return res.json(transactions);
-    }
+    const transactions = rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      vehicle_id: r.vehicle_id,
+      quantity: Number(r.quantity),
+      total_price: Number(r.total_price),
+      payment_status: r.payment_status,
+      delivery_status: r.delivery_status || 'processing',
+      shipping_address: r.shipping_address || 'Primary Delivery Address',
+      payment_method: r.payment_method || 'Verified Credit Card',
+      created_at: r.created_at,
+      users: {
+        name: r.user_name || 'Customer',
+        email: r.user_email || 'N/A',
+      },
+      vehicles: r.v_make ? {
+        make: r.v_make,
+        model: r.v_model,
+        year: Number(r.v_year),
+        category: r.v_category,
+        image_url: r.v_image_url,
+      } : null,
+      user_name: r.user_name || 'Customer',
+      user_email: r.user_email || 'N/A',
+      vehicle_name: r.v_make ? `${r.v_year} ${r.v_make} ${r.v_model}` : 'Vehicle Order',
+    }));
 
-    return res.json(memorySalesTransactions);
+    return res.json(transactions);
   } catch (err) {
+    console.error('Transactions ledger fetch error:', err);
     return res.status(500).json({ message: 'Server error fetching transaction audit ledger' });
   }
 });
@@ -218,25 +155,13 @@ router.get('/transactions/all', protect, adminOnly, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const row = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
 
-    if (supabase) {
-      const { data: vehicle, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !vehicle) {
-        return res.status(404).json({ message: 'Vehicle not found' });
-      }
-      return res.json(vehicle);
-    }
-
-    const vehicle = memoryVehicles.find((v) => v.id === id);
-    if (!vehicle) {
+    if (!row) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
-    return res.json(vehicle);
+
+    return res.json(formatVehicle(row));
   } catch (err) {
     return res.status(500).json({ message: 'Server error fetching vehicle details' });
   }
@@ -255,39 +180,31 @@ router.post('/', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Make, model, year, price, stock, and category are required' });
     }
 
-    const newVehicle = {
-      make,
-      model,
-      year: parseInt(year),
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      category,
-      image_url: image_url || 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80',
-      description: description || '',
-    };
+    const newId = `v-${crypto.randomUUID()}`;
+    const defaultImage = 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80';
 
-    if (supabase) {
-      const { data: createdVehicle, error } = await supabase
-        .from('vehicles')
-        .insert([newVehicle])
-        .select('*')
-        .single();
+    const stmt = db.prepare(`
+      INSERT INTO vehicles (id, make, model, year, price, stock, category, image_url, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      return res.status(201).json(createdVehicle);
-    }
+    stmt.run(
+      newId,
+      make.trim(),
+      model.trim(),
+      parseInt(year),
+      parseFloat(price),
+      parseInt(stock),
+      category.trim(),
+      image_url ? image_url.trim() : defaultImage,
+      description ? description.trim() : ''
+    );
 
-    const created = {
-      ...newVehicle,
-      id: `v-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    };
-    memoryVehicles.unshift(created);
-    return res.status(201).json(created);
+    const created = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(newId);
+    return res.status(201).json(formatVehicle(created));
   } catch (err) {
-    return res.status(500).json({ message: 'Server error creating vehicle' });
+    console.error('Create vehicle error:', err);
+    return res.status(500).json({ message: err.message || 'Server error creating vehicle' });
   }
 });
 
@@ -299,30 +216,33 @@ router.post('/', protect, adminOnly, async (req, res) => {
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const existing = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
 
-    if (supabase) {
-      const { data: updatedVehicle, error } = await supabase
-        .from('vehicles')
-        .update(updates)
-        .eq('id', id)
-        .select('*')
-        .single();
-
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      return res.json(updatedVehicle);
-    }
-
-    const idx = memoryVehicles.findIndex((v) => v.id === id);
-    if (idx === -1) {
+    if (!existing) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
 
-    memoryVehicles[idx] = { ...memoryVehicles[idx], ...updates };
-    return res.json(memoryVehicles[idx]);
+    const make = req.body.make !== undefined ? req.body.make : existing.make;
+    const model = req.body.model !== undefined ? req.body.model : existing.model;
+    const year = req.body.year !== undefined ? parseInt(req.body.year) : existing.year;
+    const price = req.body.price !== undefined ? parseFloat(req.body.price) : existing.price;
+    const stock = req.body.stock !== undefined ? parseInt(req.body.stock) : existing.stock;
+    const category = req.body.category !== undefined ? req.body.category : existing.category;
+    const image_url = req.body.image_url !== undefined ? req.body.image_url : existing.image_url;
+    const description = req.body.description !== undefined ? req.body.description : existing.description;
+
+    const stmt = db.prepare(`
+      UPDATE vehicles
+      SET make = ?, model = ?, year = ?, price = ?, stock = ?, category = ?, image_url = ?, description = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(make, model, year, price, stock, category, image_url, description, id);
+
+    const updated = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
+    return res.json(formatVehicle(updated));
   } catch (err) {
+    console.error('Update vehicle error:', err);
     return res.status(500).json({ message: 'Server error updating vehicle' });
   }
 });
@@ -335,19 +255,19 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
 
-    if (supabase) {
-      const { error } = await supabase.from('vehicles').delete().eq('id', id);
-
-      if (error) {
-        return res.status(500).json({ message: error.message });
-      }
-      return res.json({ message: 'Vehicle deleted successfully' });
+    if (!existing) {
+      return res.status(404).json({ message: 'Vehicle not found' });
     }
 
-    memoryVehicles = memoryVehicles.filter((v) => v.id !== id);
-    return res.json({ message: 'Vehicle deleted successfully' });
+    // Delete associated transactions if any, then delete vehicle
+    db.prepare('DELETE FROM sales_transactions WHERE vehicle_id = ?').run(id);
+    db.prepare('DELETE FROM vehicles WHERE id = ?').run(id);
+
+    return res.json({ message: 'Vehicle deleted successfully', id });
   } catch (err) {
+    console.error('Delete vehicle error:', err);
     return res.status(500).json({ message: 'Server error deleting vehicle' });
   }
 });
@@ -362,61 +282,7 @@ router.post('/:id/purchase', protect, async (req, res) => {
     const { id } = req.params;
     const quantity = parseInt(req.body.quantity || 1);
 
-    if (supabase) {
-      // 1. Fetch current vehicle
-      const { data: vehicle, error: fetchError } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchError || !vehicle) {
-        return res.status(404).json({ message: 'Vehicle not found' });
-      }
-
-      if (vehicle.stock < quantity) {
-        return res.status(400).json({ message: `Insufficient inventory stock. Only ${vehicle.stock} available.` });
-      }
-
-      const newStock = vehicle.stock - quantity;
-      const totalPrice = vehicle.price * quantity;
-
-      // 2. Decrement stock
-      const { data: updatedVehicle, error: updateError } = await supabase
-        .from('vehicles')
-        .update({ stock: newStock })
-        .eq('id', id)
-        .select('*')
-        .single();
-
-      if (updateError) {
-        return res.status(500).json({ message: `Failed to update inventory: ${updateError.message}` });
-      }
-
-      // 3. Record transaction in sales_transactions audit table
-      const { data: transaction, error: transError } = await supabase
-        .from('sales_transactions')
-        .insert([
-          {
-            user_id: req.user.id,
-            vehicle_id: id,
-            quantity,
-            total_price: totalPrice,
-            payment_status: 'completed',
-          },
-        ])
-        .select('*')
-        .single();
-
-      return res.json({
-        message: 'Vehicle purchased successfully!',
-        vehicle: updatedVehicle,
-        transaction,
-      });
-    }
-
-    // Fallback Memory Logic
-    const vehicle = memoryVehicles.find((v) => v.id === id);
+    const vehicle = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
     if (!vehicle) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
@@ -425,26 +291,30 @@ router.post('/:id/purchase', protect, async (req, res) => {
       return res.status(400).json({ message: `Insufficient inventory stock. Only ${vehicle.stock} available.` });
     }
 
-    vehicle.stock -= quantity;
+    const newStock = vehicle.stock - quantity;
     const totalPrice = vehicle.price * quantity;
-    const transaction = {
-      id: `tx-${Date.now()}`,
-      user_id: req.user.id,
-      user_name: req.user.name,
-      user_email: req.user.email,
-      vehicle_id: id,
-      vehicle_name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      quantity,
-      total_price: totalPrice,
-      payment_status: 'completed',
-      created_at: new Date().toISOString(),
-    };
-    memorySalesTransactions.unshift(transaction);
+    const transactionId = `TX-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    db.prepare('UPDATE vehicles SET stock = ? WHERE id = ?').run(newStock, id);
+
+    db.prepare(`
+      INSERT INTO sales_transactions (id, user_id, vehicle_id, quantity, total_price, payment_status, delivery_status, shipping_address, payment_method)
+      VALUES (?, ?, ?, ?, ?, 'completed', 'processing', 'Primary Delivery Address', 'Verified Card Transaction')
+    `).run(transactionId, req.user.id, id, quantity, totalPrice);
+
+    const updatedVehicle = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
 
     return res.json({
       message: 'Vehicle purchased successfully!',
-      vehicle,
-      transaction,
+      vehicle: formatVehicle(updatedVehicle),
+      transaction: {
+        id: transactionId,
+        user_id: req.user.id,
+        vehicle_id: id,
+        quantity,
+        total_price: totalPrice,
+        payment_status: 'completed',
+      },
     });
   } catch (err) {
     console.error('Purchase error:', err);
@@ -466,40 +336,18 @@ router.post('/:id/restock', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'Restock amount must be greater than zero' });
     }
 
-    if (supabase) {
-      const { data: vehicle, error: fetchErr } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchErr || !vehicle) {
-        return res.status(404).json({ message: 'Vehicle not found' });
-      }
-
-      const newStock = vehicle.stock + amount;
-      const { data: updatedVehicle, error: updateErr } = await supabase
-        .from('vehicles')
-        .update({ stock: newStock })
-        .eq('id', id)
-        .select('*')
-        .single();
-
-      if (updateErr) {
-        return res.status(500).json({ message: updateErr.message });
-      }
-
-      return res.json({ message: `Successfully restocked ${amount} units`, vehicle: updatedVehicle });
-    }
-
-    const vehicle = memoryVehicles.find((v) => v.id === id);
+    const vehicle = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
     if (!vehicle) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
 
-    vehicle.stock += amount;
-    return res.json({ message: `Successfully restocked ${amount} units`, vehicle });
+    const newStock = vehicle.stock + amount;
+    db.prepare('UPDATE vehicles SET stock = ? WHERE id = ?').run(newStock, id);
+
+    const updated = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
+    return res.json({ message: `Successfully restocked ${amount} units`, vehicle: formatVehicle(updated) });
   } catch (err) {
+    console.error('Restock error:', err);
     return res.status(500).json({ message: 'Server error during inventory restock' });
   }
 });

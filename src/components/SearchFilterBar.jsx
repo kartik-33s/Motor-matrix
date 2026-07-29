@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, X, DollarSign, CarTag } from 'lucide-react';
+import { Search, Filter, X, DollarSign } from 'lucide-react';
 
 const MAKES = ['All', 'Tesla', 'Porsche', 'BMW', 'Mercedes-Benz', 'Ford', 'Audi', 'Toyota', 'Range Rover', 'Lucid', 'Chevrolet'];
 const CATEGORIES = ['All', 'Electric', 'Sports', 'Sedan', 'SUV', 'Truck'];
