@@ -5,15 +5,8 @@ import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AdminPanel from './pages/AdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Temporary placeholder for AdminPanel until Milestone 8
-const AdminPanelPlaceholder = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center text-gray-400">
-    <h2 className="text-2xl font-bold text-purple-400 mb-2">Admin Management Panel</h2>
-    <p>Admin management table & restock controls being assembled in Milestone 8...</p>
-  </div>
-);
 
 function App() {
   return (
@@ -31,7 +24,7 @@ function App() {
                 path="/admin"
                 element={
                   <ProtectedRoute adminOnly={true}>
-                    <AdminPanelPlaceholder />
+                    <AdminPanel />
                   </ProtectedRoute>
                 }
               />
@@ -45,4 +38,5 @@ function App() {
 }
 
 export default App;
+
 
