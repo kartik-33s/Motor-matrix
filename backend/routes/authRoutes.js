@@ -4,6 +4,8 @@ import crypto from 'crypto';
 import db from '../db/sqlite.js';
 import { generateToken } from '../utils/jwt.js';
 import { protect } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
+import { sanitizeSqlInjection } from '../middleware/sqlSanitizer.js';
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ const router = express.Router();
  * @desc    Register a new user account
  * @access  Public
  */
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, sanitizeSqlInjection, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -55,7 +57,7 @@ router.post('/register', async (req, res) => {
  * @desc    Authenticate user & return JWT
  * @access  Public
  */
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, sanitizeSqlInjection, async (req, res) => {
   try {
     const { email, password } = req.body;
 

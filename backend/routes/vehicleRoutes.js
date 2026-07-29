@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import db from '../db/sqlite.js';
 import { supabase } from '../db/supabase.js';
 import { protect, adminOnly } from '../middleware/auth.js';
+import { writeLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -172,7 +173,7 @@ router.get('/:id', async (req, res) => {
  * @desc    Create a new vehicle (Admin only)
  * @access  Private (Admin)
  */
-router.post('/', protect, adminOnly, async (req, res) => {
+router.post('/', writeLimiter, protect, adminOnly, async (req, res) => {
   try {
     const { make, model, year, price, stock, category, image_url, description } = req.body;
 
@@ -213,7 +214,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
  * @desc    Update an existing vehicle (Admin only)
  * @access  Private (Admin)
  */
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', writeLimiter, protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const existing = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
@@ -252,7 +253,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
  * @desc    Delete a vehicle from catalog (Admin only)
  * @access  Private (Admin)
  */
-router.delete('/:id', protect, adminOnly, async (req, res) => {
+router.delete('/:id', writeLimiter, protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const existing = db.prepare('SELECT * FROM vehicles WHERE id = ?').get(id);
@@ -277,7 +278,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
  * @desc    Purchase vehicle / Decrement stock & record financial transaction
  * @access  Private (Customer or Admin)
  */
-router.post('/:id/purchase', protect, async (req, res) => {
+router.post('/:id/purchase', writeLimiter, protect, async (req, res) => {
   try {
     const { id } = req.params;
     const quantity = parseInt(req.body.quantity || 1);
@@ -327,7 +328,7 @@ router.post('/:id/purchase', protect, async (req, res) => {
  * @desc    Restock vehicle inventory count (Admin only)
  * @access  Private (Admin)
  */
-router.post('/:id/restock', protect, adminOnly, async (req, res) => {
+router.post('/:id/restock', writeLimiter, protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const amount = parseInt(req.body.amount || 10);

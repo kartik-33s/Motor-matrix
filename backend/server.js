@@ -6,15 +6,23 @@ import authRoutes from './routes/authRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 
+import { globalLimiter } from './middleware/rateLimiter.js';
+
 dotenv.config();
 initDb();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxy (e.g. Nginx, Heroku, Cloudflare)
+app.set('trust proxy', 1);
+
 // Global Middleware
 app.use(cors());
 app.use(express.json());
+
+// Mount Global Rate Limiter on /api endpoints
+app.use('/api', globalLimiter);
 
 // Routes Setup
 app.use('/api/auth', authRoutes);
