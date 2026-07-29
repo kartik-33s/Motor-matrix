@@ -4,15 +4,11 @@ import vehicleApi from '../api/vehicleApi';
 import SearchFilterBar from '../components/SearchFilterBar';
 import VehicleCard from '../components/VehicleCard';
 import {
-  Car,
-  Zap,
   CheckCircle2,
   AlertCircle,
   Package,
-  Sparkles,
   X,
   ArrowRight,
-  ShieldCheck,
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -46,7 +42,6 @@ const Dashboard = () => {
     fetchInventory();
   }, [filters.make, filters.category, filters.minPrice, filters.maxPrice]);
 
-  // Debounced search for q input
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchInventory();
@@ -76,24 +71,22 @@ const Dashboard = () => {
   const handlePurchaseVehicle = async (id) => {
     try {
       const res = await vehicleApi.purchaseVehicle(id, 1);
-      
-      // Update local vehicle stock state live
+
       setVehicles((prev) =>
         prev.map((v) => (v.id === id ? { ...v, stock: res.vehicle.stock } : v))
       );
 
-      // Trigger high priority Order Confirmation Modal
       setOrderConfirmation({
         vehicle: res.vehicle,
         transaction: res.transaction,
       });
 
       showToast(
-        `Order confirmed! ${res.vehicle.year} ${res.vehicle.make} ${res.vehicle.model} added to your orders.`,
+        `${res.vehicle.year} ${res.vehicle.make} ${res.vehicle.model} ADDED TO ORDERS`,
         'success'
       );
     } catch (err) {
-      const msg = err.response?.data?.message || 'Transaction failed. Please try again.';
+      const msg = err.response?.data?.message || 'TRANSACTION FAILED';
       showToast(msg, 'error');
       throw err;
     }
@@ -108,184 +101,196 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-      {/* Toast Notification Banner */}
+    <div className="relative">
+      {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 p-4 rounded-xl shadow-2xl border flex items-center space-x-3 transition-all ${
+          className={`fixed bottom-6 right-6 z-50 px-6 py-4 bg-[#1a1a1a] border flex items-center space-x-3 ${
             toast.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-300'
-              : 'bg-red-950/90 border-red-500/40 text-red-300'
+              ? 'border-[#0fa336]'
+              : 'border-[#e22718]'
           }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-[#0fa336] flex-shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-[#e22718] flex-shrink-0" />
           )}
-          <span className="text-sm font-medium">{toast.message}</span>
+          <span className="text-[14px] font-bold text-white uppercase tracking-[1.5px]">{toast.message}</span>
         </div>
       )}
 
-      {/* Hero Header Banner */}
-      <div className="mb-10 bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-purple-900/30 border border-blue-500/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-xs font-semibold text-blue-400 mb-3">
-              <Zap className="w-3.5 h-3.5" />
-              <span>Real-Time Inventory Engine</span>
+      {/* Hero Photo Band */}
+      <div className="relative w-full h-[600px] overflow-hidden bg-[#000000]">
+        <img
+          src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1920&q=80"
+          alt="Performance Vehicle"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"></div>
+        
+        <div className="relative max-w-[1440px] mx-auto px-6 lg:px-8 h-full flex flex-col justify-center">
+          <div className="max-w-2xl">
+            <div className="text-[14px] font-bold text-[#1c69d4] uppercase tracking-[1.5px] mb-4">
+              PERFORMANCE INVENTORY
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Vehicle Catalog & Stock Ledger
+            <h1 className="text-[56px] lg:text-[80px] font-bold text-white uppercase leading-none mb-6">
+              THE ULTIMATE
+              <br />
+              DRIVING CATALOG
             </h1>
-            <p className="text-sm text-gray-400 mt-2 max-w-xl">
-              Browse available dealership stock, apply combinable filters by manufacturer or price, and execute instant purchase transactions.
+            <p className="text-[16px] font-light text-[#bbbbbb] leading-relaxed max-w-xl mb-8">
+              Explore our curated collection of high-performance vehicles. Real-time inventory management with instant purchase capabilities.
             </p>
-          </div>
-
-          {/* Quick Metrics Cards */}
-          <div className="grid grid-cols-3 gap-3 flex-shrink-0">
-            <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl text-center">
-              <span className="text-2xl font-black text-white block">{vehicles.length}</span>
-              <span className="text-[10px] text-gray-400 uppercase font-semibold">Available Models</span>
-            </div>
-            <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl text-center">
-              <span className="text-2xl font-black text-emerald-400 block">
-                {vehicles.reduce((acc, v) => acc + (v.stock || 0), 0)}
-              </span>
-              <span className="text-[10px] text-gray-400 uppercase font-semibold">Total Stock</span>
-            </div>
-            <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl text-center">
-              <span className="text-2xl font-black text-purple-400 block">
-                {new Set(vehicles.map((v) => v.category)).size}
-              </span>
-              <span className="text-[10px] text-gray-400 uppercase font-semibold">Categories</span>
+            <div className="flex items-center space-x-4">
+              <div className="bg-[#1a1a1a] px-6 py-4">
+                <span className="text-[32px] font-bold text-white block leading-none">{vehicles.length}</span>
+                <span className="text-[12px] text-[#7e7e7e] uppercase tracking-[1.5px] font-bold">MODELS</span>
+              </div>
+              <div className="bg-[#1a1a1a] px-6 py-4">
+                <span className="text-[32px] font-bold text-[#0fa336] block leading-none">
+                  {vehicles.reduce((acc, v) => acc + (v.stock || 0), 0)}
+                </span>
+                <span className="text-[12px] text-[#7e7e7e] uppercase tracking-[1.5px] font-bold">IN STOCK</span>
+              </div>
+              <div className="bg-[#1a1a1a] px-6 py-4">
+                <span className="text-[32px] font-bold text-[#1c69d4] block leading-none">
+                  {new Set(vehicles.map((v) => v.category)).size}
+                </span>
+                <span className="text-[12px] text-[#7e7e7e] uppercase tracking-[1.5px] font-bold">CATEGORIES</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* M Stripe Divider */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0066b1] via-[#1c69d4] to-[#e22718]"></div>
       </div>
 
-      {/* Search & Filter Controls */}
-      <SearchFilterBar
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onResetFilters={handleResetFilters}
-        totalResults={vehicles.length}
-      />
+      {/* Main Content */}
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 py-24">
+        
+        {/* Search & Filter Controls */}
+        <SearchFilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onResetFilters={handleResetFilters}
+          totalResults={vehicles.length}
+        />
 
-      {/* Loading Skeletons */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 animate-pulse h-96">
-              <div className="w-full h-48 bg-gray-800 rounded-xl mb-4"></div>
-              <div className="h-4 bg-gray-800 rounded w-1/3 mb-2"></div>
-              <div className="h-6 bg-gray-800 rounded w-3/4 mb-4"></div>
-              <div className="h-4 bg-gray-800 rounded w-full mb-2"></div>
-            </div>
-          ))}
-        </div>
-      ) : vehicles.length === 0 ? (
-        /* Empty State */
-        <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-12 text-center my-8">
-          <Car className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-white">No vehicles found</h3>
-          <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
-            No inventory items matched your active filter criteria. Try clearing search keywords or expanding price range limits.
-          </p>
-          <button
-            onClick={handleResetFilters}
-            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
-          >
-            Reset All Filters
-          </button>
-        </div>
-      ) : (
-        /* Vehicle Cards Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vehicles.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} onPurchase={handlePurchaseVehicle} />
-          ))}
-        </div>
-      )}
-
-      {/* Order Confirmation Success Modal */}
-      {orderConfirmation && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#111827] border border-emerald-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            <button
-              onClick={() => setOrderConfirmation(null)}
-              className="absolute top-4 right-4 p-1 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Header Badge */}
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" /> Order Successfully Confirmed
-                </span>
-                <h2 className="text-xl font-black text-white">Car Added To Your Garage!</h2>
-              </div>
-            </div>
-
-            {/* Vehicle Card Summary */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 my-5 flex items-center space-x-4">
-              <img
-                src={orderConfirmation.vehicle.image_url || 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=600&q=80'}
-                alt={orderConfirmation.vehicle.model}
-                className="w-24 h-20 rounded-xl object-cover border border-gray-800 flex-shrink-0"
-              />
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-blue-400 uppercase bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                  {orderConfirmation.vehicle.category}
-                </span>
-                <h4 className="text-base font-extrabold text-white">
-                  {orderConfirmation.vehicle.year} {orderConfirmation.vehicle.make} {orderConfirmation.vehicle.model}
-                </h4>
-                <div className="flex items-center space-x-2 text-xs">
-                  <span className="text-emerald-400 font-extrabold">
-                    {formatPrice(orderConfirmation.vehicle.price)}
-                  </span>
-                  <span className="text-gray-500">•</span>
-                  <span className="text-gray-400 font-mono text-[11px]">
-                    Ref: {orderConfirmation.transaction?.id || 'TX-VERIFIED'}
-                  </span>
+        {/* Loading Skeletons */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-[#1a1a1a] animate-pulse">
+                <div className="w-full aspect-video bg-[#262626]"></div>
+                <div className="p-6 space-y-3">
+                  <div className="h-3 bg-[#262626] w-1/3"></div>
+                  <div className="h-6 bg-[#262626] w-3/4"></div>
+                  <div className="h-3 bg-[#262626] w-full"></div>
                 </div>
               </div>
-            </div>
-
-            {/* Message */}
-            <p className="text-xs text-gray-300 leading-relaxed mb-6 bg-gray-950 p-3.5 rounded-xl border border-gray-800">
-              Your purchase order has been logged into the dealership transaction ledger. You can inspect your full order history, view itemized receipts, and track fulfillment status anytime on your <strong>My Orders</strong> page.
+            ))}
+          </div>
+        ) : vehicles.length === 0 ? (
+          /* Empty State */
+          <div className="bg-[#1a1a1a] border border-[#3c3c3c] p-16 text-center my-16">
+            <h3 className="text-[24px] font-bold text-white uppercase tracking-wider mb-3">NO VEHICLES FOUND</h3>
+            <p className="text-[14px] text-[#7e7e7e] font-light mb-6 max-w-md mx-auto">
+              No inventory items matched your filter criteria. Clear filters to view all available vehicles.
             </p>
+            <button
+              onClick={handleResetFilters}
+              className="px-8 py-4 bg-[#000000] border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px] hover:bg-[#ffffff] hover:text-[#000000] transition-all"
+            >
+              RESET FILTERS
+            </button>
+          </div>
+        ) : (
+          /* Vehicle Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {vehicles.map((v) => (
+              <VehicleCard key={v.id} vehicle={v} onPurchase={handlePurchaseVehicle} />
+            ))}
+          </div>
+        )}
+      </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <button
-                onClick={() => {
-                  setOrderConfirmation(null);
-                  navigate('/orders');
-                }}
-                className="w-full sm:flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <Package className="w-4 h-4" />
-                <span>View My Orders & Analytics</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+      {/* Order Confirmation Modal */}
+      {orderConfirmation && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
+          <div className="bg-[#1a1a1a] max-w-2xl w-full relative">
+            <button
+              onClick={() => setOrderConfirmation(null)}
+              className="absolute top-6 right-6 p-2 text-[#7e7e7e] hover:text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
-              <button
-                onClick={() => setOrderConfirmation(null)}
-                className="w-full sm:w-auto py-3 px-4 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-xs font-semibold border border-gray-700 transition-colors cursor-pointer"
-              >
-                Continue Browsing
-              </button>
+            {/* M Stripe */}
+            <div className="h-1 bg-gradient-to-r from-[#0066b1] via-[#1c69d4] to-[#e22718]"></div>
+
+            <div className="p-8 sm:p-12">
+              {/* Header */}
+              <div className="mb-8">
+                <div className="text-[12px] font-bold text-[#0fa336] uppercase tracking-[1.5px] mb-2">
+                  ORDER CONFIRMED
+                </div>
+                <h2 className="text-[40px] font-bold text-white uppercase leading-tight">
+                  PURCHASE
+                  <br />
+                  COMPLETE
+                </h2>
+              </div>
+
+              {/* Vehicle Summary */}
+              <div className="bg-[#0d0d0d] border border-[#3c3c3c] p-6 mb-8">
+                <div className="grid grid-cols-2 gap-4 text-[14px]">
+                  <div>
+                    <span className="text-[#7e7e7e] uppercase tracking-[1.5px] text-[12px] font-bold block mb-1">VEHICLE</span>
+                    <span className="text-white font-bold">{orderConfirmation.vehicle.year} {orderConfirmation.vehicle.make} {orderConfirmation.vehicle.model}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#7e7e7e] uppercase tracking-[1.5px] text-[12px] font-bold block mb-1">CATEGORY</span>
+                    <span className="text-[#1c69d4] font-bold">{orderConfirmation.vehicle.category}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#7e7e7e] uppercase tracking-[1.5px] text-[12px] font-bold block mb-1">PRICE</span>
+                    <span className="text-[#0fa336] font-bold text-[20px]">{formatPrice(orderConfirmation.vehicle.price)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#7e7e7e] uppercase tracking-[1.5px] text-[12px] font-bold block mb-1">TRANSACTION</span>
+                    <span className="text-white font-mono text-[12px]">{orderConfirmation.transaction?.id || 'VERIFIED'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message */}
+              <p className="text-[14px] text-[#bbbbbb] font-light leading-relaxed mb-8">
+                Your purchase order has been logged into the dealership transaction ledger. View your complete order history and track fulfillment status on your orders page.
+              </p>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => {
+                    setOrderConfirmation(null);
+                    navigate('/orders');
+                  }}
+                  className="flex-1 px-6 py-4 bg-[#000000] border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px] hover:bg-[#ffffff] hover:text-[#000000] transition-all flex items-center justify-center space-x-2"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>VIEW MY ORDERS</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setOrderConfirmation(null)}
+                  className="sm:w-auto px-6 py-4 bg-[#1a1a1a] border border-[#3c3c3c] text-[#bbbbbb] text-[14px] font-bold uppercase tracking-[1.5px] hover:text-white hover:border-white transition-all"
+                >
+                  CONTINUE
+                </button>
+              </div>
             </div>
           </div>
         </div>

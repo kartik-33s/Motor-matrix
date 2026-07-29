@@ -17,64 +17,65 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-[#111827]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-[#000000] border-b border-[#3c3c3c] sticky top-0 z-50">
+      {/* M Stripe */}
+      <div className="h-1 bg-gradient-to-r from-[#0066b1] via-[#1c69d4] to-[#e22718]"></div>
+      
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
+
           {/* Logo / Branding */}
           <Link to="/dashboard" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 bg-[#1a1a1a] border border-[#3c3c3c] flex items-center justify-center group-hover:border-[#ffffff] transition-colors">
               <Car className="w-6 h-6 text-white" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-                MOTOR<span className="text-blue-500 font-extrabold">MATRIX</span>
+              <span className="text-xl font-bold tracking-tight text-white uppercase">
+                MOTOR<span className="text-[#1c69d4]">MATRIX</span>
               </span>
-              <span className="text-[10px] text-gray-400 block -mt-1 font-mono uppercase tracking-widest">
-                Dealership Inventory
+              <span className="text-[10px] text-[#7e7e7e] block -mt-1 font-normal uppercase tracking-[1.5px]">
+                PERFORMANCE INVENTORY
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-1">
             <Link
               to="/dashboard"
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 text-[14px] font-normal uppercase tracking-[0.5px] transition-colors ${
                 isActive('/dashboard')
-                  ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-800/60'
+                  ? 'text-white'
+                  : 'text-[#bbbbbb] hover:text-white'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Catalog Dashboard</span>
+              VEHICLES
             </Link>
 
             {isAuthenticated && (
               <Link
                 to="/orders"
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 text-[14px] font-normal uppercase tracking-[0.5px] transition-colors ${
                   isActive('/orders')
-                    ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-500/30'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800/60'
+                    ? 'text-white'
+                    : 'text-[#bbbbbb] hover:text-white'
                 }`}
               >
-                <Package className="w-4 h-4 text-emerald-400" />
-                <span>My Orders & Analytics</span>
+                MY ORDERS
               </Link>
             )}
 
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center space-x-2 px-4 py-2 text-[14px] font-normal uppercase tracking-[0.5px] transition-colors ${
                   isActive('/admin')
-                    ? 'bg-purple-600/15 text-purple-400 border border-purple-500/30'
-                    : 'text-purple-300/80 hover:text-purple-300 hover:bg-purple-950/40'
+                    ? 'text-[#1c69d4]'
+                    : 'text-[#bbbbbb] hover:text-[#1c69d4]'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
-                <span>Admin Management</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span>ADMIN</span>
               </Link>
             )}
           </div>
@@ -83,15 +84,15 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 bg-gray-800/80 border border-gray-700/60 px-3 py-1.5 rounded-full">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white uppercase">
+                <div className="flex items-center space-x-3 bg-[#1a1a1a] border border-[#3c3c3c] px-4 py-2">
+                  <div className="w-8 h-8 bg-[#1c69d4] flex items-center justify-center text-xs font-bold text-white uppercase">
                     {user?.name ? user.name.charAt(0) : 'U'}
                   </div>
                   <div className="text-left">
-                    <span className="text-xs font-semibold text-white block leading-none">
+                    <span className="text-sm font-bold text-white block leading-none uppercase tracking-wider">
                       {user?.name}
                     </span>
-                    <span className={`text-[10px] uppercase tracking-wider font-semibold ${user?.role === 'admin' ? 'text-purple-400' : 'text-blue-400'}`}>
+                    <span className="text-[10px] uppercase tracking-[1.5px] font-bold text-[#7e7e7e]">
                       {user?.role}
                     </span>
                   </div>
@@ -99,26 +100,24 @@ const Navbar = () => {
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-[#000000] border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px] hover:bg-[#ffffff] hover:text-[#000000] transition-all"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
+                  LOGOUT
                 </button>
               </div>
             ) : (
               <div className="flex items-center space-x-3">
                 <Link
                   to="/login"
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+                  className="px-6 py-3 text-[14px] font-bold text-[#bbbbbb] hover:text-white uppercase tracking-[1.5px] transition-colors"
                 >
-                  Sign In
+                  SIGN IN
                 </Link>
                 <Link
                   to="/register"
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02]"
+                  className="px-6 py-3 bg-[#000000] border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px] hover:bg-[#ffffff] hover:text-[#000000] transition-all"
                 >
-                  <KeyRound className="w-4 h-4" />
-                  <span>Register</span>
+                  REGISTER
                 </Link>
               </div>
             )}
@@ -128,7 +127,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800"
+              className="p-2 text-[#bbbbbb] hover:text-white"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -138,68 +137,65 @@ const Navbar = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#111827] border-b border-gray-800 px-4 pt-2 pb-4 space-y-2">
+        <div className="md:hidden bg-[#000000] border-t border-[#3c3c3c] px-6 pt-4 pb-6 space-y-3">
           <Link
             to="/dashboard"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800"
+            className="block px-4 py-3 text-[14px] font-bold text-white uppercase tracking-[1.5px] bg-[#1a1a1a]"
           >
-            <LayoutDashboard className="w-5 h-5 text-blue-400" />
-            <span>Catalog Dashboard</span>
+            VEHICLES
           </Link>
           {isAuthenticated && (
             <Link
               to="/orders"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-emerald-300 hover:bg-emerald-950/40"
+              className="block px-4 py-3 text-[14px] font-bold text-white uppercase tracking-[1.5px] bg-[#1a1a1a]"
             >
-              <Package className="w-5 h-5 text-emerald-400" />
-              <span>My Orders & Analytics</span>
+              MY ORDERS
             </Link>
           )}
           {isAdmin && (
             <Link
               to="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-purple-300 hover:bg-purple-900/30"
+              className="flex items-center space-x-2 px-4 py-3 text-[14px] font-bold text-[#1c69d4] uppercase tracking-[1.5px] bg-[#1a1a1a]"
             >
-              <ShieldCheck className="w-5 h-5 text-purple-400" />
-              <span>Admin Panel</span>
+              <ShieldCheck className="w-5 h-5" />
+              <span>ADMIN PANEL</span>
             </Link>
           )}
 
-          <div className="pt-2 border-t border-gray-800">
+          <div className="pt-4 border-t border-[#3c3c3c]">
             {isAuthenticated ? (
-              <div className="space-y-2">
-                <div className="px-3 py-2 text-sm text-gray-400">
-                  Signed in as <span className="text-white font-semibold">{user?.email}</span> ({user?.role})
+              <div className="space-y-3">
+                <div className="px-4 py-2 text-[12px] text-[#7e7e7e] uppercase tracking-[1.5px]">
+                  SIGNED IN AS <span className="text-white font-bold">{user?.email}</span>
                 </div>
                 <button
                   onClick={() => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center space-x-2 px-3 py-2 rounded-md text-red-400 hover:bg-red-500/10 text-left font-medium"
+                  className="w-full px-4 py-3 border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px] hover:bg-[#ffffff] hover:text-[#000000] transition-all"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
+                  LOGOUT
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col space-y-2 pt-1">
+              <div className="flex flex-col space-y-3">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800"
+                  className="w-full text-center px-4 py-3 text-[14px] font-bold text-white uppercase tracking-[1.5px] bg-[#1a1a1a]"
                 >
-                  Sign In
+                  SIGN IN
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium"
+                  className="w-full text-center px-4 py-3 border border-[#ffffff] text-white text-[14px] font-bold uppercase tracking-[1.5px]"
                 >
-                  Register
+                  REGISTER
                 </Link>
               </div>
             )}
