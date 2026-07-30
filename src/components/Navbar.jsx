@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Car, ShieldCheck, User, LogOut, LayoutDashboard, KeyRound, Menu, X, Package } from 'lucide-react';
+import { ShieldCheck, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -25,10 +25,12 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo / Branding */}
-          <Link to="/dashboard" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-[#1a1a1a] border border-[#3c3c3c] flex items-center justify-center group-hover:border-[#ffffff] transition-colors">
-              <Car className="w-6 h-6 text-white" />
-            </div>
+          <Link to="/dashboard" className="flex items-center space-x-3">
+            <img 
+              src="/logo.png" 
+              alt="Motor Matrix Logo" 
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <span className="text-xl font-bold tracking-tight text-white uppercase">
                 MOTOR<span className="text-[#1c69d4]">MATRIX</span>
